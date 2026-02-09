@@ -194,6 +194,72 @@
             --theme-primary: #f59e0b;
             --theme-primary-light: rgba(245, 158, 11, 0.1);
         }
+        
+        /* Light Mode Styles */
+        .light-mode {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f9fafb;
+            --bg-card: #ffffff;
+            --bg-hover: #f3f4f6;
+            --border-color: #e5e7eb;
+            --text-primary: #111827;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+        }
+        
+        .light-mode body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+        }
+        
+        .light-mode .bg-dark-bg {
+            background-color: var(--bg-primary);
+        }
+        
+        .light-mode .bg-dark-card {
+            background-color: var(--bg-card);
+        }
+        
+        .light-mode .bg-dark-hover {
+            background-color: var(--bg-hover);
+        }
+        
+        .light-mode .border-dark-border {
+            border-color: var(--border-color);
+        }
+        
+        .light-mode .text-gray-100,
+        .light-mode .text-white {
+            color: var(--text-primary);
+        }
+        
+        .light-mode .text-gray-400,
+        .light-mode .text-gray-500 {
+            color: var(--text-secondary);
+        }
+        
+        .light-mode .text-gray-600 {
+            color: var(--text-muted);
+        }
+        
+        .light-mode .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+        
+        .light-mode ::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+        
+        .light-mode ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+        
+        .light-mode ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
     </style>
 </head>
 <body class="bg-dark-bg text-gray-100">
@@ -485,22 +551,49 @@
         // ============================================
         // FUNCIONES DE EXPORTACIÓN
         // ============================================
-        const exportToCSV = (records) => {
+        const exportToCSV = (records, includeSalary = true, includeCommissions = true) => {
             try {
-                const headers = ['Fecha', 'Estado', 'Unidad', 'Salario Base', 'Comisiones', 'Gastos', 'Total', 'Descripción'];
+                if (!includeSalary && !includeCommissions) {
+                    return false; // No hay nada que exportar
+                }
+                
+                const headers = ['Fecha', 'Estado', 'Unidad'];
+                
+                if (includeSalary) {
+                    headers.push('Salario Base');
+                }
+                if (includeCommissions) {
+                    headers.push('Comisiones');
+                }
+                
+                headers.push('Gastos', 'Total', 'Descripción');
+                
                 const csvRows = [headers.join(',')];
                 
                 records.forEach(record => {
                     const row = [
                         record.date,
                         STATUS_LABELS[record.status],
-                        record.unit || 'OFICINA',
-                        record.baseSalary.toFixed(2),
-                        record.totalComm.toFixed(2),
-                        record.totalExp.toFixed(2),
-                        (record.baseSalary + record.totalComm - record.totalExp).toFixed(2),
-                        `"${(record.description || '').replace(/"/g, '""')}"`
+                        record.unit || 'OFICINA'
                     ];
+                    
+                    if (includeSalary) {
+                        row.push(record.baseSalary.toFixed(2));
+                    }
+                    if (includeCommissions) {
+                        row.push(record.totalComm.toFixed(2));
+                    }
+                    
+                    const total = (includeSalary ? record.baseSalary : 0) + 
+                                  (includeCommissions ? record.totalComm : 0) - 
+                                  record.totalExp;
+                    
+                    row.push(
+                        record.totalExp.toFixed(2),
+                        total.toFixed(2),
+                        `"${(record.description || '').replace(/"/g, '""')}"`
+                    );
+                    
                     csvRows.push(row.join(','));
                 });
                 
@@ -509,7 +602,10 @@
                 const link = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 link.setAttribute('href', url);
-                link.setAttribute('download', `WorkTracker_${new Date().toISOString().split('T')[0]}.csv`);
+                
+                const exportType = includeSalary && includeCommissions ? 'Completo' : 
+                                   includeSalary ? 'Nomina' : 'Comisiones';
+                link.setAttribute('download', `WorkTracker_${exportType}_${new Date().toISOString().split('T')[0]}.csv`);
                 link.style.visibility = 'hidden';
                 document.body.appendChild(link);
                 link.click();
@@ -522,8 +618,12 @@
             }
         };
 
-        const exportToPDF = (records, totals) => {
+        const exportToPDF = (records, totals, includeSalary = true, includeCommissions = true) => {
             try {
+                if (!includeSalary && !includeCommissions) {
+                    return false; // No hay nada que exportar
+                }
+                
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
                 
@@ -537,40 +637,81 @@
                 doc.setFont(undefined, 'normal');
                 doc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 105, 28, { align: 'center' });
                 
+                const exportType = includeSalary && includeCommissions ? 'Completo' : 
+                                   includeSalary ? 'Solo Nómina' : 'Solo Comisiones';
+                doc.text(`Tipo: ${exportType}`, 105, 34, { align: 'center' });
+                
                 // Resumen
                 doc.setFontSize(12);
                 doc.setFont(undefined, 'bold');
-                doc.text('Resumen', 20, 40);
+                doc.text('Resumen', 20, 45);
                 
                 doc.setFontSize(10);
                 doc.setFont(undefined, 'normal');
-                doc.text(`Total Trabajado: $${totals.worked.toFixed(2)}`, 20, 48);
-                doc.text(`Total Comisiones: $${totals.commissions.toFixed(2)}`, 20, 54);
-                doc.text(`Total Gastos: $${totals.expenses.toFixed(2)}`, 20, 60);
+                let yPos = 53;
+                
+                if (includeSalary) {
+                    doc.text(`Total Trabajado: $${totals.worked.toFixed(2)}`, 20, yPos);
+                    yPos += 6;
+                }
+                if (includeCommissions) {
+                    doc.text(`Total Comisiones: $${totals.commissions.toFixed(2)}`, 20, yPos);
+                    yPos += 6;
+                }
+                
+                doc.text(`Total Gastos: $${totals.expenses.toFixed(2)}`, 20, yPos);
+                yPos += 6;
+                
                 doc.setFont(undefined, 'bold');
-                doc.text(`TOTAL: $${totals.total.toFixed(2)}`, 20, 68);
+                const totalAmount = (includeSalary ? totals.worked : 0) + 
+                                   (includeCommissions ? totals.commissions : 0) - 
+                                   totals.expenses;
+                doc.text(`TOTAL: $${totalAmount.toFixed(2)}`, 20, yPos);
+                yPos += 10;
                 
                 // Tabla de registros
-                const tableData = records.map(record => [
-                    new Date(record.date + "T00:00:00").toLocaleDateString('es-MX'),
-                    STATUS_LABELS[record.status],
-                    record.unit || 'OFICINA',
-                    `$${record.baseSalary.toFixed(2)}`,
-                    `$${record.totalComm.toFixed(2)}`,
-                    `$${record.totalExp.toFixed(2)}`,
-                    `$${(record.baseSalary + record.totalComm - record.totalExp).toFixed(2)}`
-                ]);
+                const headers = ['Fecha', 'Estado', 'Unidad'];
+                if (includeSalary) headers.push('Salario');
+                if (includeCommissions) headers.push('Comisión');
+                headers.push('Gastos', 'Total');
+                
+                const tableData = records.map(record => {
+                    const row = [
+                        new Date(record.date + "T00:00:00").toLocaleDateString('es-MX'),
+                        STATUS_LABELS[record.status],
+                        record.unit || 'OFICINA'
+                    ];
+                    
+                    if (includeSalary) {
+                        row.push(`$${record.baseSalary.toFixed(2)}`);
+                    }
+                    if (includeCommissions) {
+                        row.push(`$${record.totalComm.toFixed(2)}`);
+                    }
+                    
+                    const total = (includeSalary ? record.baseSalary : 0) + 
+                                  (includeCommissions ? record.totalComm : 0) - 
+                                  record.totalExp;
+                    
+                    row.push(
+                        `$${record.totalExp.toFixed(2)}`,
+                        `$${total.toFixed(2)}`
+                    );
+                    
+                    return row;
+                });
                 
                 doc.autoTable({
-                    head: [['Fecha', 'Estado', 'Unidad', 'Salario', 'Comisión', 'Gastos', 'Total']],
+                    head: [headers],
                     body: tableData,
-                    startY: 75,
+                    startY: yPos,
                     theme: 'grid',
                     headStyles: { fillColor: [16, 185, 129] },
                     styles: { fontSize: 8 }
                 });
                 
-                doc.save(`WorkTracker_${new Date().toISOString().split('T')[0]}.pdf`);
+                const fileName = `WorkTracker_${exportType.replace(/ /g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`;
+                doc.save(fileName);
                 return true;
             } catch (error) {
                 console.error('Error al exportar PDF:', error);
@@ -664,6 +805,13 @@
             const [theme, setTheme] = useState('green');
             const [selectedRecords, setSelectedRecords] = useState([]);
             const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+            
+            // Estados para exportación
+            const [exportSalary, setExportSalary] = useState(true);
+            const [exportCommissions, setExportCommissions] = useState(true);
+            
+            // Estado para modo de tema del sistema
+            const [systemThemeMode, setSystemThemeMode] = useState('dark');
 
             const initialFormData = {
                 date: '',
@@ -689,8 +837,20 @@
                     const savedTheme = safeLocalStorage.getItem('worktracker_theme');
                     if (savedTheme) {
                         setTheme(savedTheme);
-                        document.body.className = THEMES[savedTheme]?.class || '';
                     }
+                    
+                    // Detectar tema del sistema
+                    const darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                    setSystemThemeMode(darkModeQuery.matches ? 'dark' : 'light');
+                    
+                    // Escuchar cambios en el tema del sistema
+                    const handleThemeChange = (e) => {
+                        setSystemThemeMode(e.matches ? 'dark' : 'light');
+                    };
+                    
+                    darkModeQuery.addEventListener('change', handleThemeChange);
+                    
+                    return () => darkModeQuery.removeEventListener('change', handleThemeChange);
                 } catch (error) {
                     console.error('Error al cargar datos:', error);
                     showToast('Error al cargar los datos guardados', 'error');
@@ -707,8 +867,12 @@
             // Guardar tema
             useEffect(() => {
                 safeLocalStorage.setItem('worktracker_theme', theme);
-                document.body.className = THEMES[theme]?.class || '';
-            }, [theme]);
+                
+                // Aplicar clase de tema y modo
+                const themeClass = THEMES[theme]?.class || '';
+                const modeClass = systemThemeMode === 'light' ? 'light-mode' : 'dark-mode';
+                document.documentElement.className = `${themeClass} ${modeClass}`;
+            }, [theme, systemThemeMode]);
 
             // Toast helper
             const showToast = (message, type = 'success') => {
@@ -1768,6 +1932,45 @@
                                         <Download size={16} className="text-emerald-400" />
                                         Exportar Datos
                                     </h4>
+                                    
+                                    {/* Checkboxes de selección */}
+                                    <div className="mb-4 space-y-2">
+                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">¿Qué datos incluir?</p>
+                                        <label className="flex items-center gap-3 p-3 rounded-lg bg-dark-hover hover:bg-dark-card transition-all cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={exportSalary}
+                                                onChange={(e) => setExportSalary(e.target.checked)}
+                                                className="w-5 h-5 rounded border-2 border-dark-border text-emerald-500 focus:ring-emerald-500"
+                                            />
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-white block">Nómina (Salario Base)</span>
+                                                <span className="text-xs text-gray-500">Días trabajados, descansos, festivos, faltas</span>
+                                            </div>
+                                        </label>
+                                        <label className="flex items-center gap-3 p-3 rounded-lg bg-dark-hover hover:bg-dark-card transition-all cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={exportCommissions}
+                                                onChange={(e) => setExportCommissions(e.target.checked)}
+                                                className="w-5 h-5 rounded border-2 border-dark-border text-emerald-500 focus:ring-emerald-500"
+                                            />
+                                            <div className="flex-1">
+                                                <span className="text-sm font-bold text-white block">Comisiones</span>
+                                                <span className="text-xs text-gray-500">Comisiones y bonos adicionales</span>
+                                            </div>
+                                        </label>
+                                    </div>
+                                    
+                                    {(!exportSalary && !exportCommissions) && (
+                                        <div className="mb-4 p-3 bg-amber-500/20 border border-amber-500/30 rounded-xl">
+                                            <p className="text-xs text-amber-400 font-semibold flex items-center gap-2">
+                                                <AlertCircle size={14} />
+                                                Selecciona al menos una opción para exportar
+                                            </p>
+                                        </div>
+                                    )}
+                                    
                                     <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => {
@@ -1775,13 +1978,24 @@
                                                     showToast('No hay datos para exportar', 'warning');
                                                     return;
                                                 }
-                                                if (exportToPDF(filteredRecords, totals)) {
-                                                    showToast('✓ PDF generado exitosamente', 'success');
+                                                if (!exportSalary && !exportCommissions) {
+                                                    showToast('Selecciona al menos una opción', 'warning');
+                                                    return;
+                                                }
+                                                if (exportToPDF(filteredRecords, totals, exportSalary, exportCommissions)) {
+                                                    const type = exportSalary && exportCommissions ? 'completo' : 
+                                                                exportSalary ? 'de nómina' : 'de comisiones';
+                                                    showToast(`✓ PDF ${type} generado exitosamente`, 'success');
                                                 } else {
                                                     showToast('Error al generar el PDF', 'error');
                                                 }
                                             }}
-                                            className="flex flex-col items-center justify-center gap-2 px-4 py-5 bg-dark-hover rounded-xl text-sm font-bold text-gray-300 border border-dark-border hover:bg-dark-card hover:border-emerald-500/30 transition-all"
+                                            disabled={!exportSalary && !exportCommissions}
+                                            className={`flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl text-sm font-bold border transition-all ${
+                                                !exportSalary && !exportCommissions
+                                                    ? 'bg-dark-card text-gray-600 border-dark-border cursor-not-allowed'
+                                                    : 'bg-dark-hover text-gray-300 border-dark-border hover:bg-dark-card hover:border-emerald-500/30'
+                                            }`}
                                         >
                                             <FileText size={24} className="text-emerald-400" />
                                             <span>PDF</span>
@@ -1792,13 +2006,24 @@
                                                     showToast('No hay datos para exportar', 'warning');
                                                     return;
                                                 }
-                                                if (exportToCSV(filteredRecords)) {
-                                                    showToast('✓ CSV exportado exitosamente', 'success');
+                                                if (!exportSalary && !exportCommissions) {
+                                                    showToast('Selecciona al menos una opción', 'warning');
+                                                    return;
+                                                }
+                                                if (exportToCSV(filteredRecords, exportSalary, exportCommissions)) {
+                                                    const type = exportSalary && exportCommissions ? 'completo' : 
+                                                                exportSalary ? 'de nómina' : 'de comisiones';
+                                                    showToast(`✓ CSV ${type} exportado exitosamente`, 'success');
                                                 } else {
                                                     showToast('Error al exportar CSV', 'error');
                                                 }
                                             }}
-                                            className="flex flex-col items-center justify-center gap-2 px-4 py-5 bg-dark-hover rounded-xl text-sm font-bold text-gray-300 border border-dark-border hover:bg-dark-card hover:border-emerald-500/30 transition-all"
+                                            disabled={!exportSalary && !exportCommissions}
+                                            className={`flex flex-col items-center justify-center gap-2 px-4 py-5 rounded-xl text-sm font-bold border transition-all ${
+                                                !exportSalary && !exportCommissions
+                                                    ? 'bg-dark-card text-gray-600 border-dark-border cursor-not-allowed'
+                                                    : 'bg-dark-hover text-gray-300 border-dark-border hover:bg-dark-card hover:border-emerald-500/30'
+                                            }`}
                                         >
                                             <Download size={24} className="text-emerald-400" />
                                             <span>CSV</span>
@@ -1853,10 +2078,20 @@
 
                                 {/* Temas */}
                                 <div className="glass-effect p-5 rounded-2xl shadow-xl">
-                                    <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                    <h4 className="text-sm font-bold mb-2 flex items-center gap-2">
                                         <Palette size={16} className="text-purple-400" />
                                         Tema de Color
                                     </h4>
+                                    <p className="text-xs text-gray-500 mb-4 flex items-center gap-2">
+                                        <span>Modo del sistema:</span>
+                                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                            systemThemeMode === 'light' 
+                                                ? 'bg-amber-500/20 text-amber-400' 
+                                                : 'bg-blue-500/20 text-blue-400'
+                                        }`}>
+                                            {systemThemeMode === 'light' ? '☀️ Claro' : '🌙 Oscuro'}
+                                        </span>
+                                    </p>
                                     <div className="grid grid-cols-5 gap-2">
                                         {Object.entries(THEMES).map(([key, themeData]) => (
                                             <button
