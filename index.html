@@ -1,0 +1,1990 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="WorkTracker Pro - Sistema de seguimiento de nómina y asistencia">
+    <meta name="theme-color" content="#10b981">
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="WorkTracker">
+    <link rel="apple-touch-icon" href="./icon-192.png">
+    
+    <title>WorkTracker Pro • 2026</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0a0a0a',
+                            card: '#141414',
+                            hover: '#1a1a1a',
+                            border: '#262626'
+                        }
+                    },
+                    animation: {
+                        'slide-up': 'slideUp 0.3s ease-out',
+                        'fade-in': 'fadeIn 0.3s ease-out',
+                        'scale-in': 'scaleIn 0.2s ease-out',
+                        'slide-down': 'slideDown 0.3s ease-out',
+                        'toast-in': 'toastIn 0.3s ease-out'
+                    },
+                    keyframes: {
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        slideDown: {
+                            '0%': { transform: 'translateY(-10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        scaleIn: {
+                            '0%': { transform: 'scale(0.95)', opacity: '0' },
+                            '100%': { transform: 'scale(1)', opacity: '1' }
+                        },
+                        toastIn: {
+                            '0%': { transform: 'translateX(400px)', opacity: '0' },
+                            '100%': { transform: 'translateX(0)', opacity: '1' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        
+        body { 
+            -webkit-font-smoothing: antialiased;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #141414; }
+        ::-webkit-scrollbar-thumb { background: #262626; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #333; }
+        
+        * { 
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+        
+        @media (max-width: 380px) {
+            .calendar-grid {
+                gap: 2px;
+            }
+        }
+        
+        .dropdown-menu {
+            max-height: 320px;
+            overflow-y: auto;
+            animation: slideUp 0.2s ease-out;
+        }
+        
+        .glass-effect {
+            background: rgba(20, 20, 20, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+        }
+        
+        .stat-card:hover {
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            transform: translateY(-2px);
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: 2px solid rgba(16, 185, 129, 0.5);
+            outline-offset: 2px;
+        }
+        
+        button:active {
+            transform: scale(0.98);
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Toast Container */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        
+        .toast {
+            pointer-events: auto;
+            animation: toastIn 0.3s ease-out;
+            margin-bottom: 10px;
+        }
+        
+        /* Modal Backdrop */
+        .modal-backdrop {
+            animation: fadeIn 0.2s ease-out;
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+        
+        /* Theme Variables */
+        :root {
+            --theme-primary: #10b981;
+            --theme-primary-light: rgba(16, 185, 129, 0.1);
+        }
+        
+        .theme-blue {
+            --theme-primary: #3b82f6;
+            --theme-primary-light: rgba(59, 130, 246, 0.1);
+        }
+        
+        .theme-purple {
+            --theme-primary: #8b5cf6;
+            --theme-primary-light: rgba(139, 92, 246, 0.1);
+        }
+        
+        .theme-rose {
+            --theme-primary: #f43f5e;
+            --theme-primary-light: rgba(244, 63, 94, 0.1);
+        }
+        
+        .theme-amber {
+            --theme-primary: #f59e0b;
+            --theme-primary-light: rgba(245, 158, 11, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-dark-bg text-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        // ============================================
+        // UTILIDADES DE ALMACENAMIENTO SEGURO
+        // ============================================
+        const safeLocalStorage = {
+            getItem: (key) => {
+                try {
+                    return localStorage.getItem(key);
+                } catch (error) {
+                    console.error('Error al leer de localStorage:', error);
+                    return null;
+                }
+            },
+            setItem: (key, value) => {
+                try {
+                    localStorage.setItem(key, value);
+                    return true;
+                } catch (error) {
+                    console.error('Error al escribir en localStorage:', error);
+                    return false;
+                }
+            },
+            removeItem: (key) => {
+                try {
+                    localStorage.removeItem(key);
+                    return true;
+                } catch (error) {
+                    console.error('Error al eliminar de localStorage:', error);
+                    return false;
+                }
+            }
+        };
+
+        // ============================================
+        // ICONOS
+        // ============================================
+        const IconBase = ({ size = 24, color = "currentColor", children, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Plus = (props) => <IconBase {...props}><path d="M5 12h14"/><path d="M12 5v14"/></IconBase>;
+        const HistoryIcon = (props) => <IconBase {...props}><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 12"/><path d="M3 3v9h9"/><path d="M12 7v5l3 3"/></IconBase>;
+        const LayoutDashboard = (props) => <IconBase {...props}><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></IconBase>;
+        const Calendar = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></IconBase>;
+        const X = (props) => <IconBase {...props}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></IconBase>;
+        const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
+        const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
+        const Upload = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
+        const MoreHorizontal = (props) => <IconBase {...props}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></IconBase>;
+        const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
+        const ChevronLeft = (props) => <IconBase {...props}><path d="m15 18-6-6 6-6"/></IconBase>;
+        const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>;
+        const ChevronDown = (props) => <IconBase {...props}><path d="m6 9 6 6 6-6"/></IconBase>;
+        const Edit = (props) => <IconBase {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></IconBase>;
+        const TrendingUp = (props) => <IconBase {...props}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></IconBase>;
+        const DollarSign = (props) => <IconBase {...props}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></IconBase>;
+        const Briefcase = (props) => <IconBase {...props}><rect width="20" height="14" x="2" y="7" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></IconBase>;
+        const CreditCard = (props) => <IconBase {...props}><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></IconBase>;
+        const AlertCircle = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconBase>;
+        const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12"/></IconBase>;
+        const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></IconBase>;
+        const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
+        const RefreshCw = (props) => <IconBase {...props}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></IconBase>;
+        const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
+        const BarChart3 = (props) => <IconBase {...props}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></IconBase>;
+        const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
+        const Palette = (props) => <IconBase {...props}><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></IconBase>;
+        const CheckSquare = (props) => <IconBase {...props}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
+        const Square = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></IconBase>;
+        
+        const StarFilled = ({ size = 24, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+            </svg>
+        );
+
+        // ============================================
+        // CONSTANTES
+        // ============================================
+        const RATES = {
+            worked: 383.11,
+            rest: 383.11,
+            permit: 0.00,
+            holiday: 1149.33,
+            absent: -1149.33
+        };
+
+        const STATUS_LABELS = {
+            worked: 'Trabajado',
+            rest: 'Descansó',
+            permit: 'Permiso',
+            holiday: 'Festivo',
+            absent: 'Falta'
+        };
+
+        const STATUS_COLORS = {
+            worked: 'bg-emerald-500', 
+            rest: 'bg-blue-500',      
+            permit: 'bg-amber-500',  
+            holiday: 'bg-purple-500', 
+            absent: 'bg-rose-500'      
+        };
+
+        const STATUS_COLORS_LIGHT = {
+            worked: 'bg-emerald-500/10', 
+            rest: 'bg-blue-500/10',      
+            permit: 'bg-amber-500/10',  
+            holiday: 'bg-purple-500/10', 
+            absent: 'bg-rose-500/10'      
+        };
+
+        const STATUS_COLORS_TEXT = {
+            worked: 'text-emerald-400', 
+            rest: 'text-blue-400',      
+            permit: 'text-amber-400',  
+            holiday: 'text-purple-400', 
+            absent: 'text-rose-400'      
+        };
+
+        const HOLIDAYS_2026 = [
+            "2026-01-01", "2026-02-02", "2026-03-16", "2026-05-01", 
+            "2026-09-16", "2026-11-16", "2026-12-25"
+        ];
+
+        const MONTH_NAMES_SHORT = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        const MONTH_NAMES_FULL = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+
+        const THEMES = {
+            green: { name: 'Esmeralda', color: '#10b981', class: '' },
+            blue: { name: 'Azul', color: '#3b82f6', class: 'theme-blue' },
+            purple: { name: 'Púrpura', color: '#8b5cf6', class: 'theme-purple' },
+            rose: { name: 'Rosa', color: '#f43f5e', class: 'theme-rose' },
+            amber: { name: 'Ámbar', color: '#f59e0b', class: 'theme-amber' }
+        };
+
+        // ============================================
+        // COMPONENTE TOAST
+        // ============================================
+        const Toast = ({ message, type = 'success', onClose }) => {
+            useEffect(() => {
+                const timer = setTimeout(onClose, 4000);
+                return () => clearTimeout(timer);
+            }, [onClose]);
+
+            const icons = {
+                success: <Check size={20} />,
+                error: <AlertCircle size={20} />,
+                info: <AlertCircle size={20} />,
+                warning: <AlertCircle size={20} />
+            };
+
+            const colors = {
+                success: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400',
+                error: 'bg-rose-500/20 border-rose-500/50 text-rose-400',
+                info: 'bg-blue-500/20 border-blue-500/50 text-blue-400',
+                warning: 'bg-amber-500/20 border-amber-500/50 text-amber-400'
+            };
+
+            return (
+                <div className={`toast glass-effect px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] border ${colors[type]}`}>
+                    {icons[type]}
+                    <span className="text-sm font-semibold flex-1">{message}</span>
+                    <button onClick={onClose} className="hover:opacity-70">
+                        <X size={16} />
+                    </button>
+                </div>
+            );
+        };
+
+        // ============================================
+        // COMPONENTE MODAL
+        // ============================================
+        const Modal = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirmar', confirmColor = 'emerald' }) => {
+            if (!isOpen) return null;
+
+            return (
+                <div className="modal-backdrop fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4" onClick={onClose}>
+                    <div className="glass-effect p-6 rounded-2xl shadow-2xl max-w-sm w-full animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className={`w-10 h-10 rounded-lg bg-${confirmColor}-500/20 flex items-center justify-center`}>
+                                <AlertCircle size={20} className={`text-${confirmColor}-400`} />
+                            </div>
+                            <h3 className="text-lg font-black text-white">{title}</h3>
+                        </div>
+                        <p className="text-sm text-gray-400 mb-6">{message}</p>
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={onClose}
+                                className="flex-1 px-4 py-3 bg-dark-hover rounded-xl text-sm font-bold text-gray-300 hover:bg-dark-card transition-all"
+                            >
+                                Cancelar
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    onConfirm();
+                                    onClose();
+                                }}
+                                className={`flex-1 px-4 py-3 bg-${confirmColor}-500 rounded-xl text-sm font-bold text-white hover:bg-${confirmColor}-600 transition-all`}
+                            >
+                                {confirmText}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ============================================
+        // FUNCIONES DE UTILIDAD
+        // ============================================
+        const generatePayrollPeriods = (year) => {
+            const periods = [];
+            for (let month = 0; month < 12; month++) {
+                const prevMonth = month === 0 ? 11 : month - 1;
+                const prevYear = month === 0 ? year - 1 : year;
+                
+                periods.push({
+                    label: `${27} ${MONTH_NAMES_SHORT[prevMonth]} - ${7} ${MONTH_NAMES_SHORT[month]}`,
+                    startDate: new Date(prevYear, prevMonth, 27),
+                    endDate: new Date(year, month, 7),
+                    payDay: 14,
+                    payMonth: month,
+                    type: 'payroll'
+                });
+                
+                periods.push({
+                    label: `${8} ${MONTH_NAMES_SHORT[month]} - ${26} ${MONTH_NAMES_SHORT[month]}`,
+                    startDate: new Date(year, month, 8),
+                    endDate: new Date(year, month, 26),
+                    payDay: 29,
+                    payMonth: month,
+                    type: 'payroll'
+                });
+            }
+            return periods;
+        };
+
+        const generateCommissionPeriods = (year) => {
+            const periods = [];
+            for (let month = 0; month < 12; month++) {
+                const prevMonth = month === 0 ? 11 : month - 1;
+                const prevYear = month === 0 ? year - 1 : year;
+                
+                periods.push({
+                    label: `${27} ${MONTH_NAMES_SHORT[prevMonth]} - ${4} ${MONTH_NAMES_SHORT[month]}`,
+                    startDate: new Date(prevYear, prevMonth, 27),
+                    endDate: new Date(year, month, 4),
+                    type: 'commission'
+                });
+                
+                periods.push({
+                    label: `${5} ${MONTH_NAMES_SHORT[month]} - ${26} ${MONTH_NAMES_SHORT[month]}`,
+                    startDate: new Date(year, month, 5),
+                    endDate: new Date(year, month, 26),
+                    type: 'commission'
+                });
+            }
+            return periods;
+        };
+
+        // Validación de fechas
+        const validateDate = (dateStr) => {
+            if (!dateStr) return { valid: false, error: 'La fecha es requerida' };
+            const date = new Date(dateStr + "T00:00:00");
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (date > today) {
+                return { valid: false, error: 'No se pueden crear registros de fechas futuras' };
+            }
+            
+            if (date.getFullYear() !== 2026) {
+                return { valid: false, error: 'Solo se permiten fechas del año 2026' };
+            }
+            
+            return { valid: true };
+        };
+
+        // ============================================
+        // FUNCIONES DE EXPORTACIÓN
+        // ============================================
+        const exportToCSV = (records) => {
+            try {
+                const headers = ['Fecha', 'Estado', 'Unidad', 'Salario Base', 'Comisiones', 'Gastos', 'Total', 'Descripción'];
+                const csvRows = [headers.join(',')];
+                
+                records.forEach(record => {
+                    const row = [
+                        record.date,
+                        STATUS_LABELS[record.status],
+                        record.unit || 'OFICINA',
+                        record.baseSalary.toFixed(2),
+                        record.totalComm.toFixed(2),
+                        record.totalExp.toFixed(2),
+                        (record.baseSalary + record.totalComm - record.totalExp).toFixed(2),
+                        `"${(record.description || '').replace(/"/g, '""')}"`
+                    ];
+                    csvRows.push(row.join(','));
+                });
+                
+                const csvContent = csvRows.join('\n');
+                const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const url = URL.createObjectURL(blob);
+                link.setAttribute('href', url);
+                link.setAttribute('download', `WorkTracker_${new Date().toISOString().split('T')[0]}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                return true;
+            } catch (error) {
+                console.error('Error al exportar CSV:', error);
+                return false;
+            }
+        };
+
+        const exportToPDF = (records, totals) => {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+                
+                // Título
+                doc.setFontSize(20);
+                doc.setFont(undefined, 'bold');
+                doc.text('WorkTracker Pro - Reporte', 105, 20, { align: 'center' });
+                
+                // Fecha del reporte
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Fecha: ${new Date().toLocaleDateString('es-MX')}`, 105, 28, { align: 'center' });
+                
+                // Resumen
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Resumen', 20, 40);
+                
+                doc.setFontSize(10);
+                doc.setFont(undefined, 'normal');
+                doc.text(`Total Trabajado: $${totals.worked.toFixed(2)}`, 20, 48);
+                doc.text(`Total Comisiones: $${totals.commissions.toFixed(2)}`, 20, 54);
+                doc.text(`Total Gastos: $${totals.expenses.toFixed(2)}`, 20, 60);
+                doc.setFont(undefined, 'bold');
+                doc.text(`TOTAL: $${totals.total.toFixed(2)}`, 20, 68);
+                
+                // Tabla de registros
+                const tableData = records.map(record => [
+                    new Date(record.date + "T00:00:00").toLocaleDateString('es-MX'),
+                    STATUS_LABELS[record.status],
+                    record.unit || 'OFICINA',
+                    `$${record.baseSalary.toFixed(2)}`,
+                    `$${record.totalComm.toFixed(2)}`,
+                    `$${record.totalExp.toFixed(2)}`,
+                    `$${(record.baseSalary + record.totalComm - record.totalExp).toFixed(2)}`
+                ]);
+                
+                doc.autoTable({
+                    head: [['Fecha', 'Estado', 'Unidad', 'Salario', 'Comisión', 'Gastos', 'Total']],
+                    body: tableData,
+                    startY: 75,
+                    theme: 'grid',
+                    headStyles: { fillColor: [16, 185, 129] },
+                    styles: { fontSize: 8 }
+                });
+                
+                doc.save(`WorkTracker_${new Date().toISOString().split('T')[0]}.pdf`);
+                return true;
+            } catch (error) {
+                console.error('Error al exportar PDF:', error);
+                return false;
+            }
+        };
+
+        // ============================================
+        // FUNCIONES DE RESPALDO
+        // ============================================
+        const exportBackup = (records) => {
+            try {
+                const backup = {
+                    version: '2.0',
+                    exportDate: new Date().toISOString(),
+                    records: records,
+                    metadata: {
+                        totalRecords: records.length,
+                        appName: 'WorkTracker Pro'
+                    }
+                };
+                
+                const dataStr = JSON.stringify(backup, null, 2);
+                const blob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `WorkTracker_Backup_${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                return true;
+            } catch (error) {
+                console.error('Error al exportar respaldo:', error);
+                return false;
+            }
+        };
+
+        const importBackup = (file, setRecords, showToast) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const backup = JSON.parse(e.target.result);
+                    
+                    // Validar estructura del backup
+                    if (!backup.records || !Array.isArray(backup.records)) {
+                        showToast('Archivo de respaldo inválido', 'error');
+                        return;
+                    }
+                    
+                    // Restaurar datos
+                    setRecords(backup.records);
+                    safeLocalStorage.setItem('worktracker_records', JSON.stringify(backup.records));
+                    showToast(`✓ ${backup.records.length} registros restaurados exitosamente`, 'success');
+                } catch (error) {
+                    console.error('Error al importar respaldo:', error);
+                    showToast('Error al procesar el archivo de respaldo', 'error');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        // ============================================
+        // COMPONENTE PRINCIPAL
+        // ============================================
+        const App = () => {
+            const [records, setRecords] = useState([]);
+            const [activeTab, setActiveTab] = useState('dashboard');
+            const [editingId, setEditingId] = useState(null);
+            
+            const [filterStartDate, setFilterStartDate] = useState('');
+            const [filterEndDate, setFilterEndDate] = useState('');
+            const [filterStatuses, setFilterStatuses] = useState(['all']);
+            const [searchQuery, setSearchQuery] = useState('');
+            
+            const [selectedPeriod, setSelectedPeriod] = useState('custom');
+            const payrollPeriods = useMemo(() => generatePayrollPeriods(2026), []);
+            const commissionPeriods = useMemo(() => generateCommissionPeriods(2026), []);
+            
+            const [viewMode, setViewMode] = useState('calendar');
+            const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+            const [currentYear, setCurrentYear] = useState(2026);
+            
+            const [showMonthDropdown, setShowMonthDropdown] = useState(false);
+            
+            const [toasts, setToasts] = useState([]);
+            const [modalState, setModalState] = useState({ isOpen: false, type: null, data: null });
+            
+            const [theme, setTheme] = useState('green');
+            const [selectedRecords, setSelectedRecords] = useState([]);
+            const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+
+            const initialFormData = {
+                date: '',
+                status: 'worked',
+                unit: '',
+                commissions: [],
+                expenses: [],
+                description: ''
+            };
+            const [formData, setFormData] = useState(initialFormData);
+
+            const fileInputRef = useRef(null);
+            const chartRef = useRef(null);
+
+            // Cargar datos al iniciar
+            useEffect(() => {
+                try {
+                    const savedRecords = safeLocalStorage.getItem('worktracker_records');
+                    if (savedRecords) {
+                        setRecords(JSON.parse(savedRecords));
+                    }
+                    
+                    const savedTheme = safeLocalStorage.getItem('worktracker_theme');
+                    if (savedTheme) {
+                        setTheme(savedTheme);
+                        document.body.className = THEMES[savedTheme]?.class || '';
+                    }
+                } catch (error) {
+                    console.error('Error al cargar datos:', error);
+                    showToast('Error al cargar los datos guardados', 'error');
+                }
+            }, []);
+
+            // Guardar datos cuando cambian
+            useEffect(() => {
+                if (records.length > 0) {
+                    safeLocalStorage.setItem('worktracker_records', JSON.stringify(records));
+                }
+            }, [records]);
+
+            // Guardar tema
+            useEffect(() => {
+                safeLocalStorage.setItem('worktracker_theme', theme);
+                document.body.className = THEMES[theme]?.class || '';
+            }, [theme]);
+
+            // Toast helper
+            const showToast = (message, type = 'success') => {
+                const id = Date.now();
+                setToasts(prev => [...prev, { id, message, type }]);
+            };
+
+            const removeToast = (id) => {
+                setToasts(prev => prev.filter(t => t.id !== id));
+            };
+
+            // Funciones de formulario
+            const addCommission = () => {
+                setFormData({
+                    ...formData,
+                    commissions: [...formData.commissions, { name: '', amount: '' }]
+                });
+            };
+
+            const addExpense = () => {
+                setFormData({
+                    ...formData,
+                    expenses: [...formData.expenses, { name: '', amount: '' }]
+                });
+            };
+
+            const submitRecord = (e) => {
+                e.preventDefault();
+                
+                // Validar fecha
+                const dateValidation = validateDate(formData.date);
+                if (!dateValidation.valid) {
+                    showToast(dateValidation.error, 'error');
+                    return;
+                }
+                
+                // Validar comisiones y gastos
+                const invalidComm = formData.commissions.some(c => c.name && (!c.amount || parseFloat(c.amount) < 0));
+                const invalidExp = formData.expenses.some(e => e.name && (!e.amount || parseFloat(e.amount) < 0));
+                
+                if (invalidComm || invalidExp) {
+                    showToast('Los montos deben ser números positivos', 'error');
+                    return;
+                }
+                
+                const totalComm = formData.commissions.reduce((sum, c) => sum + (parseFloat(c.amount) || 0), 0);
+                const totalExp = formData.expenses.reduce((sum, e) => sum + (parseFloat(e.amount) || 0), 0);
+                const baseSalary = RATES[formData.status];
+                
+                const newRecord = {
+                    id: editingId || Date.now(),
+                    ...formData,
+                    baseSalary,
+                    totalComm,
+                    totalExp
+                };
+                
+                if (editingId) {
+                    setRecords(records.map(r => r.id === editingId ? newRecord : r));
+                    showToast('✓ Registro actualizado correctamente', 'success');
+                } else {
+                    setRecords([...records, newRecord]);
+                    showToast('✓ Registro creado exitosamente', 'success');
+                }
+                
+                setFormData(initialFormData);
+                setEditingId(null);
+                setViewMode('calendar');
+            };
+
+            const deleteRecord = (id) => {
+                setModalState({
+                    isOpen: true,
+                    type: 'delete',
+                    data: id,
+                    title: '¿Eliminar registro?',
+                    message: 'Esta acción no se puede deshacer.',
+                    confirmText: 'Eliminar',
+                    confirmColor: 'rose',
+                    onConfirm: () => {
+                        setRecords(records.filter(r => r.id !== id));
+                        showToast('Registro eliminado', 'info');
+                    }
+                });
+            };
+
+            const handleResetData = () => {
+                setModalState({
+                    isOpen: true,
+                    type: 'reset',
+                    title: '⚠️ Restablecer Datos',
+                    message: 'Esto eliminará TODOS los registros permanentemente. Esta acción no se puede deshacer.',
+                    confirmText: 'Eliminar Todo',
+                    confirmColor: 'rose',
+                    onConfirm: () => {
+                        setRecords([]);
+                        safeLocalStorage.removeItem('worktracker_records');
+                        setSelectedRecords([]);
+                        setIsMultiSelectMode(false);
+                        showToast('Todos los datos han sido eliminados', 'info');
+                    }
+                });
+            };
+
+            const handleBulkDelete = () => {
+                setModalState({
+                    isOpen: true,
+                    type: 'bulkDelete',
+                    title: `¿Eliminar ${selectedRecords.length} registros?`,
+                    message: 'Esta acción no se puede deshacer.',
+                    confirmText: 'Eliminar',
+                    confirmColor: 'rose',
+                    onConfirm: () => {
+                        setRecords(records.filter(r => !selectedRecords.includes(r.id)));
+                        setSelectedRecords([]);
+                        setIsMultiSelectMode(false);
+                        showToast(`${selectedRecords.length} registros eliminados`, 'info');
+                    }
+                });
+            };
+
+            const toggleRecordSelection = (id) => {
+                setSelectedRecords(prev => 
+                    prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+                );
+            };
+
+            const filteredRecords = useMemo(() => {
+                return records.filter(r => {
+                    const recordDate = new Date(r.date + "T00:00:00");
+                    
+                    if (selectedPeriod !== 'custom') {
+                        const period = [...payrollPeriods, ...commissionPeriods].find(p => p.label === selectedPeriod);
+                        if (period) {
+                            if (recordDate < period.startDate || recordDate > period.endDate) return false;
+                        }
+                    } else {
+                        if (filterStartDate && recordDate < new Date(filterStartDate + "T00:00:00")) return false;
+                        if (filterEndDate && recordDate > new Date(filterEndDate + "T00:00:00")) return false;
+                    }
+                    
+                    if (!filterStatuses.includes('all') && !filterStatuses.includes(r.status)) return false;
+                    
+                    if (searchQuery) {
+                        const query = searchQuery.toLowerCase();
+                        const matchesUnit = (r.unit || '').toLowerCase().includes(query);
+                        const matchesDescription = (r.description || '').toLowerCase().includes(query);
+                        const matchesDate = r.date.includes(query);
+                        if (!matchesUnit && !matchesDescription && !matchesDate) return false;
+                    }
+                    
+                    return true;
+                });
+            }, [records, filterStartDate, filterEndDate, filterStatuses, selectedPeriod, payrollPeriods, commissionPeriods, searchQuery]);
+
+            const totals = useMemo(() => {
+                const worked = filteredRecords.reduce((sum, r) => sum + r.baseSalary, 0);
+                const commissions = filteredRecords.reduce((sum, r) => sum + r.totalComm, 0);
+                const expenses = filteredRecords.reduce((sum, r) => sum + r.totalExp, 0);
+                return {
+                    worked,
+                    commissions,
+                    expenses,
+                    total: worked + commissions - expenses
+                };
+            }, [filteredRecords]);
+
+            const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+            const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
+            
+            const calendarDays = useMemo(() => {
+                const days = [];
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    days.push(null);
+                }
+                for (let day = 1; day <= daysInMonth; day++) {
+                    days.push(day);
+                }
+                return days;
+            }, [currentMonth, currentYear, daysInMonth, firstDayOfMonth]);
+
+            const getRecordForDate = (day) => {
+                if (!day) return null;
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                return records.find(r => r.date === dateStr);
+            };
+
+            const handleDayClick = (day) => {
+                if (!day) return;
+                const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const existingRecord = getRecordForDate(day);
+                
+                if (existingRecord) {
+                    setEditingId(existingRecord.id);
+                    setFormData(existingRecord);
+                } else {
+                    setEditingId(null);
+                    setFormData({...initialFormData, date: dateStr});
+                }
+                
+                setViewMode('form');
+            };
+
+            const navigateMonth = (direction) => {
+                let newMonth = currentMonth + direction;
+                let newYear = currentYear;
+                
+                if (newMonth > 11) {
+                    newMonth = 0;
+                    newYear++;
+                } else if (newMonth < 0) {
+                    newMonth = 11;
+                    newYear--;
+                }
+                
+                setCurrentMonth(newMonth);
+                setCurrentYear(newYear);
+            };
+
+            const selectMonth = (monthIndex) => {
+                setCurrentMonth(monthIndex);
+                setShowMonthDropdown(false);
+            };
+
+            const handleStatusToggle = (status) => {
+                if (status === 'all') {
+                    setFilterStatuses(['all']);
+                } else {
+                    const newStatuses = filterStatuses.includes('all') 
+                        ? [status]
+                        : filterStatuses.includes(status)
+                            ? filterStatuses.filter(s => s !== status)
+                            : [...filterStatuses, status];
+                    
+                    if (newStatuses.length === 0) {
+                        setFilterStatuses(['all']);
+                    } else {
+                        setFilterStatuses(newStatuses);
+                    }
+                }
+            };
+
+            // Gráfico de estadísticas
+            useEffect(() => {
+                if (activeTab === 'dashboard' && chartRef.current && filteredRecords.length > 0) {
+                    const ctx = chartRef.current.getContext('2d');
+                    
+                    // Destruir gráfico anterior si existe
+                    if (chartRef.current.chart) {
+                        chartRef.current.chart.destroy();
+                    }
+                    
+                    // Preparar datos por estado
+                    const statusCounts = {};
+                    const statusTotals = {};
+                    Object.keys(STATUS_LABELS).forEach(status => {
+                        statusCounts[status] = 0;
+                        statusTotals[status] = 0;
+                    });
+                    
+                    filteredRecords.forEach(record => {
+                        statusCounts[record.status]++;
+                        statusTotals[record.status] += record.baseSalary + record.totalComm - record.totalExp;
+                    });
+                    
+                    chartRef.current.chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: Object.values(STATUS_LABELS),
+                            datasets: [{
+                                label: 'Días',
+                                data: Object.values(statusCounts),
+                                backgroundColor: [
+                                    'rgba(16, 185, 129, 0.7)',
+                                    'rgba(59, 130, 246, 0.7)',
+                                    'rgba(245, 158, 11, 0.7)',
+                                    'rgba(139, 92, 246, 0.7)',
+                                    'rgba(244, 63, 94, 0.7)'
+                                ],
+                                borderColor: [
+                                    'rgb(16, 185, 129)',
+                                    'rgb(59, 130, 246)',
+                                    'rgb(245, 158, 11)',
+                                    'rgb(139, 92, 246)',
+                                    'rgb(244, 63, 94)'
+                                ],
+                                borderWidth: 2,
+                                borderRadius: 8
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                    padding: 12,
+                                    titleColor: '#fff',
+                                    bodyColor: '#fff',
+                                    borderColor: '#10b981',
+                                    borderWidth: 1
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    ticks: { 
+                                        color: '#6b7280',
+                                        font: { family: 'Inter', size: 11, weight: '600' }
+                                    },
+                                    grid: { color: 'rgba(255, 255, 255, 0.05)' }
+                                },
+                                x: {
+                                    ticks: { 
+                                        color: '#6b7280',
+                                        font: { family: 'Inter', size: 11, weight: '600' }
+                                    },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            }, [activeTab, filteredRecords]);
+
+            return (
+                <div className="min-h-screen bg-dark-bg pb-24">
+                    {/* Contenedor de Toasts */}
+                    <div className="toast-container">
+                        {toasts.map(toast => (
+                            <Toast
+                                key={toast.id}
+                                message={toast.message}
+                                type={toast.type}
+                                onClose={() => removeToast(toast.id)}
+                            />
+                        ))}
+                    </div>
+
+                    {/* Modal */}
+                    <Modal
+                        isOpen={modalState.isOpen}
+                        onClose={() => setModalState({ ...modalState, isOpen: false })}
+                        onConfirm={modalState.onConfirm}
+                        title={modalState.title}
+                        message={modalState.message}
+                        confirmText={modalState.confirmText}
+                        confirmColor={modalState.confirmColor}
+                    />
+
+                    {/* Header con título */}
+                    <div className="glass-effect sticky top-0 z-40 px-6 py-4 mb-1">
+                        <div className="max-w-md mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg">
+                                    <Briefcase size={20} className="text-white" />
+                                </div>
+                                <div>
+                                    <h1 className="text-lg font-black text-white tracking-tight">WorkTracker</h1>
+                                    <p className="text-[10px] font-semibold text-emerald-400">Nómina 2026</p>
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wide">Total</p>
+                                <p className="text-lg font-black text-emerald-400">
+                                    ${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <main className="max-w-md mx-auto px-4 space-y-4">
+                        
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-4 animate-fade-in">
+                                
+                                {/* Selector de Periodo */}
+                                <div className="glass-effect rounded-2xl p-4 shadow-xl">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 block flex items-center gap-2">
+                                        <Calendar size={12} />
+                                        Periodo de Análisis
+                                    </label>
+                                    <select 
+                                        value={selectedPeriod} 
+                                        onChange={e => {
+                                            setSelectedPeriod(e.target.value);
+                                            if (e.target.value !== 'custom') {
+                                                setFilterStartDate('');
+                                                setFilterEndDate('');
+                                            }
+                                        }}
+                                        className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white hover:border-emerald-500/50 transition-all"
+                                    >
+                                        <option value="custom">📅 Personalizado</option>
+                                        <optgroup label="💰 Nómina">
+                                            {payrollPeriods.map((period, idx) => (
+                                                <option key={`payroll-${idx}`} value={period.label}>
+                                                    {period.label} • Pago: ${period.payDay}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="⭐ Comisiones">
+                                            {commissionPeriods.map((period, idx) => (
+                                                <option key={`commission-${idx}`} value={period.label}>
+                                                    {period.label}
+                                                </option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                    
+                                    {selectedPeriod === 'custom' && (
+                                        <div className="flex gap-3 mt-3 animate-slide-up">
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Inicio</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={filterStartDate} 
+                                                    onChange={e => setFilterStartDate(e.target.value)} 
+                                                    className="w-full bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Fin</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={filterEndDate} 
+                                                    onChange={e => setFilterEndDate(e.target.value)} 
+                                                    className="w-full bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Card Principal de Totales */}
+                                <div className="relative overflow-hidden rounded-3xl shadow-2xl">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-emerald-700 to-emerald-800"></div>
+                                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZGVmcz48cGF0dGVybiBpZD0iZ3JpZCIgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBwYXR0ZXJuVW5pdHM9InVzZXJTcGFjZU9uVXNlIj48cGF0aCBkPSJNIDQwIDAgTCAwIDAgMCA0MCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLW9wYWNpdHk9IjAuMDUiIHN0cm9rZS13aWR0aD0iMSIvPjwvcGF0dGVybj48L2RlZnM+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0idXJsKCNncmlkKSIvPjwvc3ZnPg==')] opacity-30"></div>
+                                    
+                                    <div className="relative p-6">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center backdrop-blur">
+                                                    <DollarSign size={18} className="text-white" />
+                                                </div>
+                                                <span className="text-emerald-100 text-xs font-bold uppercase tracking-wider">Periodo Actual</span>
+                                            </div>
+                                            <div className="flex items-center gap-1.5">
+                                                <TrendingUp size={14} className="text-emerald-200" />
+                                                <span className="text-[10px] font-bold text-emerald-200">{filteredRecords.length} días</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div className="mb-6">
+                                            <p className="text-white text-5xl font-black tracking-tight mb-1">
+                                                ${totals.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </p>
+                                            <p className="text-emerald-100 text-xs font-semibold">Total a recibir</p>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-3 gap-2">
+                                            <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <Clock size={12} className="text-emerald-200" />
+                                                    <p className="text-[9px] text-emerald-100 font-bold uppercase tracking-wide">Trabajo</p>
+                                                </div>
+                                                <p className="text-white text-base font-black">${totals.worked.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                                            </div>
+                                            <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <Sparkles size={12} className="text-emerald-200" />
+                                                    <p className="text-[9px] text-emerald-100 font-bold uppercase tracking-wide">Comisión</p>
+                                                </div>
+                                                <p className="text-white text-base font-black">${totals.commissions.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                                            </div>
+                                            <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                                                <div className="flex items-center gap-1.5 mb-1">
+                                                    <CreditCard size={12} className="text-emerald-200" />
+                                                    <p className="text-[9px] text-emerald-100 font-bold uppercase tracking-wide">Gastos</p>
+                                                </div>
+                                                <p className="text-white text-base font-black">${totals.expenses.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Gráfico de Estadísticas */}
+                                {filteredRecords.length > 0 && (
+                                    <div className="glass-effect rounded-2xl p-5 shadow-xl">
+                                        <div className="flex items-center gap-2 mb-4">
+                                            <BarChart3 size={16} className="text-emerald-400" />
+                                            <h3 className="text-sm font-bold text-white">Distribución por Estado</h3>
+                                        </div>
+                                        <div className="chart-container">
+                                            <canvas ref={chartRef}></canvas>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Resumen por Estados */}
+                                <div className="glass-effect rounded-2xl p-5 shadow-xl">
+                                    <h3 className="text-sm font-bold text-white mb-4">Desglose Detallado</h3>
+                                    <div className="space-y-3">
+                                        {Object.entries(STATUS_LABELS).map(([status, label]) => {
+                                            const count = filteredRecords.filter(r => r.status === status).length;
+                                            const total = filteredRecords
+                                                .filter(r => r.status === status)
+                                                .reduce((sum, r) => sum + r.baseSalary + r.totalComm - r.totalExp, 0);
+                                            
+                                            if (count === 0) return null;
+                                            
+                                            return (
+                                                <div key={status} className="flex items-center justify-between p-3 rounded-xl bg-dark-hover">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={`w-3 h-3 rounded-full ${STATUS_COLORS[status]}`}></div>
+                                                        <div>
+                                                            <p className="text-sm font-bold text-white">{label}</p>
+                                                            <p className="text-[10px] text-gray-500">{count} día{count !== 1 ? 's' : ''}</p>
+                                                        </div>
+                                                    </div>
+                                                    <p className={`text-sm font-black ${STATUS_COLORS_TEXT[status]}`}>
+                                                        ${total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'calendar' && (
+                            <div className="space-y-4 animate-fade-in">
+                                {viewMode === 'calendar' ? (
+                                    <>
+                                        {/* Controles del Calendario */}
+                                        <div className="glass-effect rounded-2xl p-4 shadow-xl">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <button 
+                                                    onClick={() => navigateMonth(-1)}
+                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-dark-hover hover:bg-dark-card transition-all"
+                                                >
+                                                    <ChevronLeft size={20} className="text-gray-400" />
+                                                </button>
+                                                
+                                                <div className="relative">
+                                                    <button 
+                                                        onClick={() => setShowMonthDropdown(!showMonthDropdown)}
+                                                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-dark-hover hover:bg-dark-card transition-all"
+                                                    >
+                                                        <span className="text-sm font-black text-white">
+                                                            {MONTH_NAMES_FULL[currentMonth]} {currentYear}
+                                                        </span>
+                                                        <ChevronDown size={16} className="text-gray-400" />
+                                                    </button>
+                                                    
+                                                    {showMonthDropdown && (
+                                                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 glass-effect rounded-xl p-2 shadow-2xl z-50 dropdown-menu w-48">
+                                                            {MONTH_NAMES_FULL.map((month, idx) => (
+                                                                <button
+                                                                    key={idx}
+                                                                    onClick={() => selectMonth(idx)}
+                                                                    className={`w-full text-left px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                                                                        idx === currentMonth 
+                                                                            ? 'bg-emerald-500 text-white' 
+                                                                            : 'text-gray-400 hover:bg-dark-hover'
+                                                                    }`}
+                                                                >
+                                                                    {month}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <button 
+                                                    onClick={() => navigateMonth(1)}
+                                                    className="w-10 h-10 flex items-center justify-center rounded-xl bg-dark-hover hover:bg-dark-card transition-all"
+                                                >
+                                                    <ChevronRight size={20} className="text-gray-400" />
+                                                </button>
+                                            </div>
+
+                                            {/* Días de la semana */}
+                                            <div className="calendar-grid mb-2">
+                                                {DAY_NAMES.map(day => (
+                                                    <div key={day} className="text-center text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                                        {day}
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {/* Grid de días del mes */}
+                                            <div className="calendar-grid">
+                                                {calendarDays.map((day, idx) => {
+                                                    if (!day) return <div key={idx} className="aspect-square"></div>;
+                                                    
+                                                    const record = getRecordForDate(day);
+                                                    const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                                                    const isHoliday = HOLIDAYS_2026.includes(dateStr);
+                                                    const isToday = new Date().getDate() === day && new Date().getMonth() === currentMonth && new Date().getFullYear() === currentYear;
+                                                    
+                                                    return (
+                                                        <button
+                                                            key={idx}
+                                                            onClick={() => handleDayClick(day)}
+                                                            className={`aspect-square rounded-lg p-1.5 flex flex-col items-center justify-center text-xs font-bold transition-all relative group ${
+                                                                record 
+                                                                    ? `${STATUS_COLORS[record.status]} text-white shadow-lg hover:scale-105` 
+                                                                    : isHoliday
+                                                                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40 hover:bg-purple-500/30'
+                                                                        : 'bg-dark-card hover:bg-dark-hover text-gray-400 border border-dark-border hover:border-emerald-500/30'
+                                                            } ${isToday ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-dark-bg' : ''}`}
+                                                        >
+                                                            <span className="text-sm font-black">{day}</span>
+                                                            {record && (
+                                                                <span className="text-[8px] opacity-90 font-bold mt-0.5">
+                                                                    ${(record.baseSalary + record.totalComm - record.totalExp).toFixed(0)}
+                                                                </span>
+                                                            )}
+                                                            {isHoliday && !record && (
+                                                                <span className="text-[7px] opacity-75 font-semibold mt-0.5">Fest</span>
+                                                            )}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+
+                                        {/* Leyenda */}
+                                        <div className="glass-effect p-4 rounded-xl">
+                                            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-3">Leyenda</p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {Object.entries(STATUS_LABELS).map(([key, label]) => (
+                                                    <div key={key} className="flex items-center gap-2">
+                                                        <div className={`w-3 h-3 rounded ${STATUS_COLORS[key]}`}></div>
+                                                        <span className="text-xs font-semibold text-gray-400">{label}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </>
+                                ) : (
+                                    // Formulario
+                                    <form onSubmit={submitRecord} className="space-y-4 animate-slide-up">
+                                        <div className="flex items-center justify-between">
+                                            <h2 className="text-xl font-black text-white">{editingId ? 'Editar' : 'Nuevo'} Registro</h2>
+                                            <button 
+                                                type="button"
+                                                onClick={() => {
+                                                    setViewMode('calendar');
+                                                    setEditingId(null);
+                                                    setFormData(initialFormData);
+                                                }}
+                                                className="w-11 h-11 flex items-center justify-center glass-effect rounded-xl hover:bg-dark-hover transition-all border border-transparent hover:border-rose-500/30 group"
+                                            >
+                                                <X size={20} className="text-gray-400 group-hover:text-rose-400" />
+                                            </button>
+                                        </div>
+
+                                        <div className="glass-effect p-5 rounded-2xl shadow-xl space-y-4">
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Fecha *</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={formData.date} 
+                                                    onChange={e => setFormData({...formData, date: e.target.value})} 
+                                                    max={new Date().toISOString().split('T')[0]}
+                                                    className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Estado *</label>
+                                                <select 
+                                                    value={formData.status} 
+                                                    onChange={e => setFormData({...formData, status: e.target.value})} 
+                                                    className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                >
+                                                    {Object.entries(STATUS_LABELS).map(([k,v]) => (
+                                                        <option key={k} value={k}>{v} - ${RATES[k].toFixed(2)}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Unidad</label>
+                                                <input 
+                                                    type="text" 
+                                                    placeholder="Ej: OFICINA, UNIDAD 1" 
+                                                    value={formData.unit} 
+                                                    onChange={e => setFormData({...formData, unit: e.target.value})} 
+                                                    maxLength={50}
+                                                    className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white placeholder-gray-600 hover:border-emerald-500/50"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Descripción</label>
+                                                <textarea 
+                                                    placeholder="Notas adicionales..." 
+                                                    value={formData.description} 
+                                                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                                                    maxLength={500}
+                                                    className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white placeholder-gray-600 resize-none hover:border-emerald-500/50"
+                                                    rows="3"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                        <Sparkles size={12} />
+                                                        Comisiones
+                                                    </label>
+                                                    <button type="button" onClick={addCommission} className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 transition-colors">
+                                                        <Plus size={14} /> Agregar
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {formData.commissions.map((comm, i) => (
+                                                        <div key={i} className="flex gap-2 items-center">
+                                                            <input 
+                                                                placeholder="Nombre de comisión" 
+                                                                type="text" 
+                                                                maxLength={50}
+                                                                className="flex-1 bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white placeholder-gray-600 hover:border-emerald-500/50" 
+                                                                value={comm.name} 
+                                                                onChange={e => { 
+                                                                    const newC = [...formData.commissions]; 
+                                                                    newC[i].name = e.target.value; 
+                                                                    setFormData({...formData, commissions: newC}); 
+                                                                }} 
+                                                            />
+                                                            <input 
+                                                                placeholder="$" 
+                                                                type="number" 
+                                                                step="0.01"
+                                                                min="0"
+                                                                className="w-28 bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-bold text-emerald-400 outline-none hover:border-emerald-500/50" 
+                                                                value={comm.amount} 
+                                                                onChange={e => { 
+                                                                    const newC = [...formData.commissions]; 
+                                                                    newC[i].amount = e.target.value; 
+                                                                    setFormData({...formData, commissions: newC}); 
+                                                                }} 
+                                                            />
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => { 
+                                                                    const newC = formData.commissions.filter((_, idx) => idx !== i); 
+                                                                    setFormData({...formData, commissions: newC}); 
+                                                                }}
+                                                                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-rose-500/20 transition-colors group"
+                                                            >
+                                                                <X size={16} className="text-gray-500 group-hover:text-rose-400" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                                                        <CreditCard size={12} />
+                                                        Gastos
+                                                    </label>
+                                                    <button type="button" onClick={addExpense} className="text-xs font-bold text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors">
+                                                        <Plus size={14} /> Agregar
+                                                    </button>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    {formData.expenses.map((exp, i) => (
+                                                        <div key={i} className="flex gap-2 items-center">
+                                                            <select 
+                                                                className="flex-1 bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white hover:border-rose-500/50" 
+                                                                value={exp.name} 
+                                                                onChange={e => { 
+                                                                    const newE = [...formData.expenses]; 
+                                                                    newE[i].name = e.target.value; 
+                                                                    setFormData({...formData, expenses: newE}); 
+                                                                }}
+                                                            >
+                                                                <option value="">Seleccionar...</option>
+                                                                <option value="Transporte">🚗 Transporte</option>
+                                                                <option value="Comida">🍽️ Comida</option>
+                                                                <option value="Herramientas">🔧 Herramientas</option>
+                                                                <option value="Uniforme">👕 Uniforme</option>
+                                                                <option value="Otro">📦 Otro</option>
+                                                            </select>
+                                                            <input 
+                                                                placeholder="$" 
+                                                                type="number" 
+                                                                step="0.01"
+                                                                min="0"
+                                                                className="w-28 bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-bold text-rose-400 outline-none hover:border-rose-500/50" 
+                                                                value={exp.amount} 
+                                                                onChange={e => { 
+                                                                    const newE = [...formData.expenses]; 
+                                                                    newE[i].amount = e.target.value; 
+                                                                    setFormData({...formData, expenses: newE}); 
+                                                                }} 
+                                                            />
+                                                            <button 
+                                                                type="button" 
+                                                                onClick={() => { 
+                                                                    const newE = formData.expenses.filter((_, idx) => idx !== i); 
+                                                                    setFormData({...formData, expenses: newE}); 
+                                                                }}
+                                                                className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-rose-500/20 transition-colors group"
+                                                            >
+                                                                <X size={16} className="text-gray-500 group-hover:text-rose-400" />
+                                                            </button>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-3">
+                                            {editingId && (
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => deleteRecord(editingId)}
+                                                    className="px-6 py-4 bg-rose-500/20 rounded-xl text-sm font-bold text-rose-400 border border-rose-500/30 hover:bg-rose-500/30 transition-all flex items-center justify-center gap-2"
+                                                >
+                                                    <Trash2 size={18} /> Eliminar
+                                                </button>
+                                            )}
+                                            <button 
+                                                type="submit"
+                                                className="flex-1 px-6 py-4 bg-emerald-500 rounded-xl text-sm font-bold text-white shadow-lg hover:bg-emerald-600 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                {editingId ? <><Check size={20} /> Actualizar</> : <><Plus size={20} /> Crear</>}
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'history' && (
+                            <div className="space-y-4 animate-fade-in">
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-black text-white px-1">Historial</h2>
+                                    {records.length > 0 && (
+                                        <button
+                                            onClick={() => setIsMultiSelectMode(!isMultiSelectMode)}
+                                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                isMultiSelectMode
+                                                    ? 'bg-emerald-500 text-white'
+                                                    : 'bg-dark-hover text-gray-400 hover:bg-dark-card'
+                                            }`}
+                                        >
+                                            {isMultiSelectMode ? 'Cancelar' : 'Seleccionar'}
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {isMultiSelectMode && selectedRecords.length > 0 && (
+                                    <div className="glass-effect p-4 rounded-2xl flex items-center justify-between animate-slide-down">
+                                        <span className="text-sm font-bold text-white">{selectedRecords.length} seleccionado{selectedRecords.length !== 1 ? 's' : ''}</span>
+                                        <button
+                                            onClick={handleBulkDelete}
+                                            className="px-4 py-2 bg-rose-500 rounded-xl text-xs font-bold text-white hover:bg-rose-600 transition-all flex items-center gap-2"
+                                        >
+                                            <Trash2 size={16} /> Eliminar
+                                        </button>
+                                    </div>
+                                )}
+
+                                <div className="glass-effect p-4 rounded-2xl shadow-xl space-y-4">
+                                    {/* Buscador */}
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block flex items-center gap-2">
+                                            <Search size={12} />
+                                            Buscar
+                                        </label>
+                                        <input
+                                            type="text"
+                                            placeholder="Buscar por unidad, descripción o fecha..."
+                                            value={searchQuery}
+                                            onChange={e => setSearchQuery(e.target.value)}
+                                            className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white placeholder-gray-600 hover:border-emerald-500/50"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 block flex items-center gap-2">
+                                            <Calendar size={12} />
+                                            Periodo
+                                        </label>
+                                        <select 
+                                            value={selectedPeriod} 
+                                            onChange={e => {
+                                                setSelectedPeriod(e.target.value);
+                                                if (e.target.value !== 'custom') {
+                                                    setFilterStartDate('');
+                                                    setFilterEndDate('');
+                                                }
+                                            }}
+                                            className="w-full bg-dark-hover border border-dark-border p-3 rounded-xl text-sm font-semibold outline-none text-white hover:border-emerald-500/50"
+                                        >
+                                            <option value="custom">📅 Personalizado</option>
+                                            <optgroup label="💰 Nómina">
+                                                {payrollPeriods.map((period, idx) => (
+                                                    <option key={`payroll-${idx}`} value={period.label}>
+                                                        {period.label} • Pago: ${period.payDay}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                            <optgroup label="⭐ Comisiones">
+                                                {commissionPeriods.map((period, idx) => (
+                                                    <option key={`commission-${idx}`} value={period.label}>
+                                                        {period.label}
+                                                    </option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                    </div>
+
+                                    {selectedPeriod === 'custom' && (
+                                        <div className="flex gap-3 animate-slide-up">
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Inicio</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={filterStartDate} 
+                                                    onChange={e => setFilterStartDate(e.target.value)} 
+                                                    className="w-full bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <label className="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-1.5 block">Fin</label>
+                                                <input 
+                                                    type="date" 
+                                                    value={filterEndDate} 
+                                                    onChange={e => setFilterEndDate(e.target.value)} 
+                                                    className="w-full bg-dark-hover border border-dark-border p-2.5 rounded-lg text-xs font-semibold outline-none text-white hover:border-emerald-500/50"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div>
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3 block">Filtrar por Estado</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleStatusToggle('all')}
+                                                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                                    filterStatuses.includes('all')
+                                                        ? 'bg-emerald-500 text-white shadow-lg'
+                                                        : 'bg-dark-hover border border-dark-border text-gray-400 hover:bg-dark-card hover:border-emerald-500/30'
+                                                }`}
+                                            >
+                                                ✨ Todo
+                                            </button>
+                                            {Object.entries(STATUS_LABELS).map(([k, v]) => (
+                                                <button
+                                                    key={k}
+                                                    type="button"
+                                                    onClick={() => handleStatusToggle(k)}
+                                                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+                                                        filterStatuses.includes(k) && !filterStatuses.includes('all')
+                                                            ? `${STATUS_COLORS[k]} text-white shadow-lg`
+                                                            : 'bg-dark-hover border border-dark-border text-gray-400 hover:bg-dark-card'
+                                                    }`}
+                                                >
+                                                    {v}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {filteredRecords.length === 0 ? (
+                                        <div className="glass-effect p-12 rounded-2xl text-center">
+                                            <HistoryIcon size={48} className="text-gray-600 mx-auto mb-3" />
+                                            <p className="text-gray-500 text-sm font-semibold">No hay registros para mostrar</p>
+                                            <p className="text-gray-600 text-xs mt-1">Ajusta los filtros o agrega nuevos registros</p>
+                                        </div>
+                                    ) : (
+                                        filteredRecords.map(r => (
+                                            <div key={r.id} className="glass-effect p-4 rounded-2xl shadow-lg flex items-center gap-4 hover:bg-dark-hover transition-all group">
+                                                {isMultiSelectMode && (
+                                                    <button
+                                                        onClick={() => toggleRecordSelection(r.id)}
+                                                        className="flex-shrink-0"
+                                                    >
+                                                        {selectedRecords.includes(r.id) ? (
+                                                            <CheckSquare size={24} className="text-emerald-400" />
+                                                        ) : (
+                                                            <Square size={24} className="text-gray-600" />
+                                                        )}
+                                                    </button>
+                                                )}
+                                                
+                                                <div className="flex items-center gap-4 flex-1">
+                                                    <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center text-[10px] font-bold ${r.baseSalary < 0 ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'}`}>
+                                                        <span className="text-base font-black">{new Date(r.date + "T00:00:00").getDate()}</span>
+                                                        <span className="uppercase text-[9px] opacity-75">{new Date(r.date + "T00:00:00").toLocaleDateString('es-MX', { month: 'short' })}</span>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <h4 className="text-sm font-bold text-white mb-0.5">{r.unit || 'OFICINA'}</h4>
+                                                        <p className="text-[10px] text-gray-500 font-semibold uppercase">{STATUS_LABELS[r.status]}</p>
+                                                        {r.description && (
+                                                            <p className="text-[9px] text-gray-600 mt-1 max-w-[200px] truncate">{r.description}</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="text-right flex flex-col items-end gap-2">
+                                                    <p className="text-base font-black text-emerald-400">
+                                                        ${(r.baseSalary + r.totalComm - r.totalExp).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                    {!isMultiSelectMode && (
+                                                        <div className="flex gap-3">
+                                                            <button 
+                                                                onClick={() => { 
+                                                                    setEditingId(r.id); 
+                                                                    setFormData(r); 
+                                                                    setActiveTab('calendar'); 
+                                                                    setViewMode('form'); 
+                                                                }} 
+                                                                className="text-[10px] font-bold text-blue-500 hover:text-blue-400 transition-colors"
+                                                            >
+                                                                EDITAR
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => deleteRecord(r.id)} 
+                                                                className="text-[10px] font-bold text-gray-600 hover:text-rose-500 transition-colors"
+                                                            >
+                                                                BORRAR
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'more' && (
+                            <div className="space-y-4 animate-fade-in">
+                                <h2 className="text-xl font-black text-white px-1">Más Opciones</h2>
+                                
+                                {/* Exportar Datos */}
+                                <div className="glass-effect p-5 rounded-2xl shadow-xl">
+                                    <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                        <Download size={16} className="text-emerald-400" />
+                                        Exportar Datos
+                                    </h4>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button
+                                            onClick={() => {
+                                                if (records.length === 0) {
+                                                    showToast('No hay datos para exportar', 'warning');
+                                                    return;
+                                                }
+                                                if (exportToPDF(filteredRecords, totals)) {
+                                                    showToast('✓ PDF generado exitosamente', 'success');
+                                                } else {
+                                                    showToast('Error al generar el PDF', 'error');
+                                                }
+                                            }}
+                                            className="flex flex-col items-center justify-center gap-2 px-4 py-5 bg-dark-hover rounded-xl text-sm font-bold text-gray-300 border border-dark-border hover:bg-dark-card hover:border-emerald-500/30 transition-all"
+                                        >
+                                            <FileText size={24} className="text-emerald-400" />
+                                            <span>PDF</span>
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                if (records.length === 0) {
+                                                    showToast('No hay datos para exportar', 'warning');
+                                                    return;
+                                                }
+                                                if (exportToCSV(filteredRecords)) {
+                                                    showToast('✓ CSV exportado exitosamente', 'success');
+                                                } else {
+                                                    showToast('Error al exportar CSV', 'error');
+                                                }
+                                            }}
+                                            className="flex flex-col items-center justify-center gap-2 px-4 py-5 bg-dark-hover rounded-xl text-sm font-bold text-gray-300 border border-dark-border hover:bg-dark-card hover:border-emerald-500/30 transition-all"
+                                        >
+                                            <Download size={24} className="text-emerald-400" />
+                                            <span>CSV</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Respaldo y Restauración */}
+                                <div className="glass-effect p-5 rounded-2xl shadow-xl">
+                                    <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                        <RefreshCw size={16} className="text-blue-400" />
+                                        Respaldo y Restauración
+                                    </h4>
+                                    <div className="space-y-3">
+                                        <button
+                                            onClick={() => {
+                                                if (records.length === 0) {
+                                                    showToast('No hay datos para respaldar', 'warning');
+                                                    return;
+                                                }
+                                                if (exportBackup(records)) {
+                                                    showToast('✓ Respaldo creado exitosamente', 'success');
+                                                } else {
+                                                    showToast('Error al crear el respaldo', 'error');
+                                                }
+                                            }}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-blue-500/20 rounded-xl text-sm font-bold text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all"
+                                        >
+                                            <Download size={20} /> Exportar Respaldo (JSON)
+                                        </button>
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-4 bg-amber-500/20 rounded-xl text-sm font-bold text-amber-400 border border-amber-500/30 hover:bg-amber-500/30 transition-all"
+                                        >
+                                            <Upload size={20} /> Importar Respaldo
+                                        </button>
+                                        <input
+                                            ref={fileInputRef}
+                                            type="file"
+                                            accept=".json"
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) {
+                                                    importBackup(file, setRecords, showToast);
+                                                }
+                                                e.target.value = '';
+                                            }}
+                                            className="hidden"
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Temas */}
+                                <div className="glass-effect p-5 rounded-2xl shadow-xl">
+                                    <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                        <Palette size={16} className="text-purple-400" />
+                                        Tema de Color
+                                    </h4>
+                                    <div className="grid grid-cols-5 gap-2">
+                                        {Object.entries(THEMES).map(([key, themeData]) => (
+                                            <button
+                                                key={key}
+                                                onClick={() => setTheme(key)}
+                                                className={`aspect-square rounded-xl flex flex-col items-center justify-center gap-1 transition-all ${
+                                                    theme === key
+                                                        ? 'ring-2 ring-offset-2 ring-offset-dark-bg scale-105'
+                                                        : 'hover:scale-105'
+                                                }`}
+                                                style={{ 
+                                                    backgroundColor: themeData.color + '20',
+                                                    borderColor: themeData.color + '50',
+                                                    borderWidth: '2px',
+                                                    color: themeData.color
+                                                }}
+                                            >
+                                                <div 
+                                                    className="w-6 h-6 rounded-full"
+                                                    style={{ backgroundColor: themeData.color }}
+                                                />
+                                                {theme === key && <Check size={12} />}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-3 text-center font-semibold">{THEMES[theme].name}</p>
+                                </div>
+
+                                {/* Reset de Datos */}
+                                <div className="glass-effect p-5 rounded-2xl shadow-xl">
+                                    <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
+                                        <AlertCircle size={16} className="text-rose-400" />
+                                        Zona de Peligro
+                                    </h4>
+                                    <button
+                                        onClick={handleResetData}
+                                        disabled={records.length === 0}
+                                        className={`w-full flex items-center justify-center gap-2 px-4 py-4 rounded-xl text-sm font-bold transition-all ${
+                                            records.length === 0
+                                                ? 'bg-dark-hover text-gray-600 border border-dark-border cursor-not-allowed'
+                                                : 'bg-rose-500/20 text-rose-400 border border-rose-500/30 hover:bg-rose-500/30'
+                                        }`}
+                                    >
+                                        <Trash2 size={20} /> Eliminar Todos los Datos
+                                    </button>
+                                    <p className="text-[10px] text-gray-600 mt-2 text-center">
+                                        Esta acción es permanente y no se puede deshacer
+                                    </p>
+                                </div>
+
+                                {/* Información */}
+                                <div className="glass-effect p-5 rounded-2xl shadow-xl">
+                                    <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
+                                        <AlertCircle size={16} className="text-gray-400" />
+                                        Información
+                                    </h4>
+                                    <div className="space-y-2 text-xs text-gray-500">
+                                        <p><span className="font-bold text-gray-400">Versión:</span> 2.0</p>
+                                        <p><span className="font-bold text-gray-400">Registros:</span> {records.length}</p>
+                                        <p><span className="font-bold text-gray-400">PWA:</span> Instalable ✓</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                    </main>
+
+                    {/* Navegación Inferior */}
+                    <nav className="fixed bottom-0 left-0 right-0 glass-effect h-20 flex justify-around items-center px-2 z-50 border-t border-dark-border">
+                        <button 
+                            onClick={() => setActiveTab('dashboard')} 
+                            className={`flex flex-col items-center gap-1.5 w-1/4 transition-all group ${activeTab === 'dashboard' ? 'text-emerald-400' : 'text-gray-600'}`}
+                        >
+                           <div className={`w-11 h-8 rounded-xl flex items-center justify-center transition-all ${activeTab === 'dashboard' ? 'bg-emerald-500/20 scale-110' : 'group-hover:bg-dark-hover'}`}>
+                               <LayoutDashboard size={20} />
+                           </div>
+                           <span className="text-[9px] font-bold uppercase tracking-wider">Resumen</span>
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setActiveTab('calendar');
+                                setViewMode('calendar');
+                            }} 
+                            className={`flex flex-col items-center gap-1.5 w-1/4 transition-all group ${activeTab === 'calendar' ? 'text-emerald-400' : 'text-gray-600'}`}
+                        >
+                           <div className={`w-11 h-8 rounded-xl flex items-center justify-center transition-all ${activeTab === 'calendar' ? 'bg-emerald-500/20 scale-110' : 'group-hover:bg-dark-hover'}`}>
+                               <Calendar size={20} />
+                           </div>
+                           <span className="text-[9px] font-bold uppercase tracking-wider">Calendario</span>
+                        </button>
+                        <button 
+                            onClick={() => {
+                                setActiveTab('history');
+                                setIsMultiSelectMode(false);
+                                setSelectedRecords([]);
+                            }} 
+                            className={`flex flex-col items-center gap-1.5 w-1/4 transition-all group ${activeTab === 'history' ? 'text-emerald-400' : 'text-gray-600'}`}
+                        >
+                           <div className={`w-11 h-8 rounded-xl flex items-center justify-center transition-all ${activeTab === 'history' ? 'bg-emerald-500/20 scale-110' : 'group-hover:bg-dark-hover'}`}>
+                               <HistoryIcon size={20} />
+                           </div>
+                           <span className="text-[9px] font-bold uppercase tracking-wider">Historial</span>
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('more')} 
+                            className={`flex flex-col items-center gap-1.5 w-1/4 transition-all group ${activeTab === 'more' ? 'text-emerald-400' : 'text-gray-600'}`}
+                        >
+                           <div className={`w-11 h-8 rounded-xl flex items-center justify-center transition-all ${activeTab === 'more' ? 'bg-emerald-500/20 scale-110' : 'group-hover:bg-dark-hover'}`}>
+                               <MoreHorizontal size={20} />
+                           </div>
+                           <span className="text-[9px] font-bold uppercase tracking-wider">Más</span>
+                        </button>
+                    </nav>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+
+        // Registrar Service Worker para PWA
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./service-worker.js')
+                    .then(reg => console.log('Service Worker registrado:', reg.scope))
+                    .catch(err => console.log('Error al registrar Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>
