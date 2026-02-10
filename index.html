@@ -112,18 +112,7 @@
             backdrop-filter: blur(20px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
-        .stat-card {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-        }
-        
-        .stat-card:hover {
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            transform: translateY(-2px);
-        }
-        
+
         input:focus, select:focus, textarea:focus {
             outline: 2px solid rgba(16, 185, 129, 0.5);
             outline-offset: 2px;
@@ -132,16 +121,7 @@
         button:active {
             transform: scale(0.98);
         }
-        
-        .pulse-dot {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
+
         /* Toast Container */
         .toast-container {
             position: fixed;
@@ -321,7 +301,6 @@
         const FileText = (props) => <IconBase {...props}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/><line x1="10" x2="8" y1="9" y2="9"/></IconBase>;
         const Download = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></IconBase>;
         const Upload = (props) => <IconBase {...props}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></IconBase>;
-        const MoreHorizontal = (props) => <IconBase {...props}><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></IconBase>;
         const Clock = (props) => <IconBase {...props}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></IconBase>;
         const ChevronLeft = (props) => <IconBase {...props}><path d="m15 18-6-6 6-6"/></IconBase>;
         const ChevronRight = (props) => <IconBase {...props}><path d="m9 18 6-6-6-6"/></IconBase>;
@@ -335,7 +314,6 @@
         const Check = (props) => <IconBase {...props}><polyline points="20 6 9 17 4 12"/></IconBase>;
         const Sparkles = (props) => <IconBase {...props}><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></IconBase>;
         const Trash2 = (props) => <IconBase {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></IconBase>;
-        const RefreshCw = (props) => <IconBase {...props}><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></IconBase>;
         const Search = (props) => <IconBase {...props}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></IconBase>;
         const BarChart3 = (props) => <IconBase {...props}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></IconBase>;
         const Settings = (props) => <IconBase {...props}><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></IconBase>;
@@ -343,12 +321,6 @@
         const CheckSquare = (props) => <IconBase {...props}><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></IconBase>;
         const Square = (props) => <IconBase {...props}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/></IconBase>;
         const Shield = (props) => <IconBase {...props}><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></IconBase>;
-        
-        const StarFilled = ({ size = 24, className = "" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-        );
 
         // ============================================
         // CONSTANTES
@@ -375,14 +347,6 @@
             permit: 'bg-amber-500',  
             holiday: 'bg-purple-500', 
             absent: 'bg-rose-500'      
-        };
-
-        const STATUS_COLORS_LIGHT = {
-            worked: 'bg-emerald-500/10', 
-            rest: 'bg-blue-500/10',      
-            permit: 'bg-amber-500/10',  
-            holiday: 'bg-purple-500/10', 
-            absent: 'bg-rose-500/10'      
         };
 
         const STATUS_COLORS_TEXT = {
@@ -515,7 +479,6 @@
                     startDate: new Date(prevYear, prevMonth, 27),
                     endDate: new Date(year, month, 7),
                     payDay: 14,
-                    payMonth: month,
                     type: 'payroll'
                 });
                 
@@ -524,7 +487,6 @@
                     startDate: new Date(year, month, 8),
                     endDate: new Date(year, month, 26),
                     payDay: 29,
-                    payMonth: month,
                     type: 'payroll'
                 });
             }
@@ -915,16 +877,11 @@
             const [showMonthDropdown, setShowMonthDropdown] = useState(false);
             
             const [toasts, setToasts] = useState([]);
-            const [modalState, setModalState] = useState({ isOpen: false, type: null, data: null });
+            const [modalState, setModalState] = useState({ isOpen: false });
             
             const [theme, setTheme] = useState('green');
             const [selectedRecords, setSelectedRecords] = useState([]);
             const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
-            
-            // Estados para exportación
-            const [exportSalary, setExportSalary] = useState(true);
-            const [exportCommissions, setExportCommissions] = useState(true);
-            const [exportExpenses, setExportExpenses] = useState(true);
             
             // Estado para configuración de tarifas
             const [showRatesConfig, setShowRatesConfig] = useState(false);
@@ -937,15 +894,6 @@
             // Estado para selector de periodo de exportación
             const [showExportPeriodModal, setShowExportPeriodModal] = useState(false);
             const [exportPeriodSelection, setExportPeriodSelection] = useState('all');
-            const [pendingExportType, setPendingExportType] = useState(null); // 'pdf' o 'csv'
-            
-            // Estado para mostrar periodos anteriores
-            const [showPastPeriods, setShowPastPeriods] = useState(false);
-            
-            // Estados para filtros rápidos de historial
-            const [filterCommissionsOnly, setFilterCommissionsOnly] = useState(false);
-            const [filterExpensesOnly, setFilterExpensesOnly] = useState(false);
-            
             // Estado para menú desplegable de ControlCheck
             const [showMenu, setShowMenu] = useState(false);
             
@@ -1131,8 +1079,6 @@
             const deleteRecord = (id) => {
                 setModalState({
                     isOpen: true,
-                    type: 'delete',
-                    data: id,
                     title: '¿Eliminar registro?',
                     message: 'Esta acción no se puede deshacer.',
                     confirmText: 'Eliminar',
@@ -1144,28 +1090,9 @@
                 });
             };
 
-            const handleResetData = () => {
-                setModalState({
-                    isOpen: true,
-                    type: 'reset',
-                    title: '⚠️ Restablecer Datos',
-                    message: 'Esto eliminará TODOS los registros permanentemente. Esta acción no se puede deshacer.',
-                    confirmText: 'Eliminar Todo',
-                    confirmColor: 'rose',
-                    onConfirm: () => {
-                        setRecords([]);
-                        safeLocalStorage.removeItem('worktracker_records');
-                        setSelectedRecords([]);
-                        setIsMultiSelectMode(false);
-                        showToast('Todos los datos han sido eliminados', 'info');
-                    }
-                });
-            };
-
             const handleBulkDelete = () => {
                 setModalState({
                     isOpen: true,
-                    type: 'bulkDelete',
                     title: `¿Eliminar ${selectedRecords.length} registros?`,
                     message: 'Esta acción no se puede deshacer.',
                     confirmText: 'Eliminar',
@@ -1503,7 +1430,6 @@
                                             onClick={() => {
                                                 setModalState({
                                                     isOpen: true,
-                                                    type: 'reset',
                                                     title: '⚠️ Restablecer Datos',
                                                     message: 'Esto eliminará TODOS tus registros y configuración. Esta acción NO se puede deshacer.',
                                                     confirmText: 'Eliminar Todo',
@@ -2577,8 +2503,6 @@
                                 setActiveTab('history');
                                 setIsMultiSelectMode(false);
                                 setSelectedRecords([]);
-                                setFilterCommissionsOnly(false);
-                                setFilterExpensesOnly(false);
                             }} 
                             className={`flex flex-col items-center gap-1.5 flex-1 transition-all group ${activeTab === 'history' ? 'text-emerald-400' : 'text-gray-600'}`}
                         >
