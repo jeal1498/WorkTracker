@@ -1121,6 +1121,7 @@
             
             // Estado para modal de comisiones preconfiguradas con QR
             const [showCommissionsModal, setShowCommissionsModal] = useState(false);
+            const [preconfFilter, setPreconfFilter] = useState('Desde Aeropuerto Cancún');
             const [showQRModal, setShowQRModal] = useState(false); // Modal de registro de jornada
             const [showQRConfigModal, setShowQRConfigModal] = useState(false); // Modal para configurar QR (solo en perfil)
             const [showQuickCommissionModal, setShowQuickCommissionModal] = useState(false); // Modal de comisión rápida
@@ -2644,7 +2645,7 @@
                                                     <div className="flex gap-2">
                                                         <button 
                                                             type="button" 
-                                                            onClick={() => setShowCommissionsModal(true)} 
+                                                            onClick={() => { setPreconfFilter('Desde Aeropuerto Cancún'); setShowCommissionsModal(true); }} 
                                                             className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
                                                         >
                                                             <Sparkles size={14} /> Preconfiguradas
@@ -3765,6 +3766,16 @@
                                         >
                                             🔄 PUNTO A PUNTO
                                         </button>
+                                        <button
+                                            onClick={() => setSelectedCategory('Servicios Especiales')}
+                                            className={`px-5 py-2.5 rounded-full text-xs font-bold transition-all ${
+                                                selectedCategory === 'Servicios Especiales'
+                                                    ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg scale-105'
+                                                    : 'bg-dark-hover border-2 border-dark-border text-gray-400 hover:bg-dark-card hover:border-amber-500/50'
+                                            }`}
+                                        >
+                                            ⭐ ESPECIALES
+                                        </button>
                                     </div>
                                 </div>
                                 
@@ -3860,15 +3871,40 @@
                                     </div>
                                 )}
                                 
+                                {/* Category pills */}
+                                <div className="flex flex-wrap gap-2 mb-4">
+                                    <button onClick={() => setPreconfFilter('Desde Aeropuerto Cancún')}
+                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                                            preconfFilter === 'Desde Aeropuerto Cancún' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white shadow-lg' : 'bg-dark-hover border-2 border-dark-border text-gray-400 hover:border-emerald-500/50'
+                                        }`}>✈️ APTO CANCÚN</button>
+                                    <button onClick={() => setPreconfFilter('Desde Aeropuerto Tulúm')}
+                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                                            preconfFilter === 'Desde Aeropuerto Tulúm' ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg' : 'bg-dark-hover border-2 border-dark-border text-gray-400 hover:border-purple-500/50'
+                                        }`}>✈️ APTO TULÚM</button>
+                                    <button onClick={() => setPreconfFilter('Punto a Punto')}
+                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                                            preconfFilter === 'Punto a Punto' ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg' : 'bg-dark-hover border-2 border-dark-border text-gray-400 hover:border-blue-500/50'
+                                        }`}>🔄 PUNTO A PUNTO</button>
+                                    <button onClick={() => setPreconfFilter('Servicios Especiales')}
+                                        className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                                            preconfFilter === 'Servicios Especiales' ? 'bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-lg' : 'bg-dark-hover border-2 border-dark-border text-gray-400 hover:border-amber-500/50'
+                                        }`}>⭐ ESPECIALES</button>
+                                </div>
+
                                 <div className="space-y-4">
-                                    {Object.keys(getFilteredCommissions(selectedUnitType)).length === 0 ? (
+                                    {(() => {
+                                        const allComms = getFilteredCommissions(selectedUnitType);
+                                        const filtered = preconfFilter 
+                                            ? Object.fromEntries(Object.entries(allComms).filter(([cat]) => cat === preconfFilter))
+                                            : allComms;
+                                        return Object.keys(filtered).length === 0 ? (
                                         <div className="text-center py-12">
                                             <Sparkles size={48} className="text-gray-600 mx-auto mb-3" />
                                             <p className="text-gray-500 text-sm font-semibold">No hay comisiones para este tipo de unidad</p>
                                             <p className="text-gray-600 text-xs mt-1">Selecciona "Todas las unidades" para ver todas las opciones</p>
                                         </div>
                                     ) : (
-                                        Object.entries(getFilteredCommissions(selectedUnitType)).map(([category, commissions]) => (
+                                        Object.entries(filtered).map(([category, commissions]) => (
                                         <div key={category} className="space-y-3">
                                             <h4 className="text-sm font-bold text-emerald-400 mb-3">{category}</h4>
                                             <div className="space-y-2">
@@ -3915,7 +3951,8 @@
                                             </div>
                                         </div>
                                     ))
-                                    )}
+                                    );
+                                    })()}
                                 </div>
                             </div>
                         </div>
